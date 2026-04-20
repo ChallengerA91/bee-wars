@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BEE WARS v6.0.1 — Hybrid</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Syne:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/phaser/3.60.0/phaser.min.js"></script>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="phaser-container"></div>
+
+<div id="introBg"><canvas id="paraBg"></canvas></div>
+<div style="position:fixed;top:16px;left:16px;z-index:1003;display:flex;align-items:center;gap:10px" id="updBar">
+<button id="updBtn" onclick="document.getElementById('updatesPanel').classList.toggle('show')" style="padding:8px 16px;background:var(--s3);border:1px solid var(--brd);border-radius:var(--radius-sm);color:var(--t3);font-size:12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--brd)';this.style.color='var(--t3)'">📜 Updates</button>
+<button onclick="openEncyclopedia()" style="padding:8px 16px;background:var(--s3);border:1px solid var(--brd);border-radius:var(--radius-sm);color:var(--t3);font-size:12px;cursor:pointer;transition:all .15s;display:flex;align-items:center;gap:6px" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--brd)';this.style.color='var(--t3)'">📖 Encyclopedia</button>
+<span style="font-size:11px;color:var(--t4);font-family:Syne">v5.0</span>
+</div>
+<div id="updatesPanel" style="position:fixed;top:52px;left:16px;z-index:1003;display:none;width:340px;max-height:70vh;overflow-y:auto;background:var(--s2);border:1px solid var(--brd);border-radius:var(--radius);padding:16px;box-shadow:0 16px 48px rgba(0,0,0,.5)">
+ <div style="font-family:Syne;font-size:15px;color:var(--gold);margin-bottom:12px">Update History</div>
+ <div id="updatesList"></div>
+</div>
+<div id="encycPanel">
+ <div class="enc-header"><h2>Encyclopedia</h2><button class="enc-close" onclick="closeEncyclopedia()">ESC to close</button></div>
+ <div class="enc-body">
+  <div class="enc-nav" id="encNav"></div>
+  <div class="enc-content" id="encContent"></div>
+ </div>
+</div>
+<div id="title">
+ <div class="title-left">
+  <div class="tl-bee">BEE</div>
+  <div class="tl-wars">WARS</div>
+  <div class="tl-rule"></div>
+  <div class="tl-sub">Grand Colony Strategy</div>
+  <div class="tl-ver">v6.0.1</div>
+  <div class="tl-stats" id="tlStats">
+   <div class="ts-label">Economy <span id="tsEcoVal" style="float:right;font-family:Syne;color:#F0A830">0</span></div><div class="ts-bar"><div class="ts-fill" id="tsEco" style="width:0%"></div></div>
+   <div class="ts-label">Military <span id="tsMilVal" style="float:right;font-family:Syne;color:#D04040">0</span></div><div class="ts-bar"><div class="ts-fill" id="tsMil" style="width:0%"></div></div>
+   <div class="ts-label">Diplomacy <span id="tsDipVal" style="float:right;font-family:Syne;color:#60A0D0">0</span></div><div class="ts-bar"><div class="ts-fill" id="tsDip" style="width:0%"></div></div>
+   <div class="ts-label">Scouting <span id="tsSctVal" style="float:right;font-family:Syne;color:#888">0</span></div><div class="ts-bar"><div class="ts-fill" id="tsSct" style="width:0%"></div></div>
+  </div>
+  <button id="goBtn" disabled onclick="startGame()">BEGIN CAMPAIGN</button>
+  <button onclick="loadGame()" style="padding:10px 28px;background:var(--s3);border:1px solid var(--brd);color:var(--t2);border-radius:var(--radius);font-family:Syne;font-weight:600;font-size:13px;cursor:pointer;margin-top:8px;transition:all .15s" onmouseover="this.style.borderColor='var(--gold)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--brd)';this.style.color='var(--t3)'">LOAD GAME</button>
+ </div>
+ <div class="title-right">
+  <div class="tr-header">Select Your Faction</div>
+  <div id="fGrid"></div>
+ </div>
+</div>
+<div id="setup">
+ <div class="setup-title">Establish Your Colony</div>
+ <div class="setup-sub" id="setupFaction"></div>
+ <div style="display:flex;gap:8px">
+  <button class="setup-rand" onclick="backToTitle()">← Back</button>
+  <button class="setup-rand" onclick="randomizeSetup()">🎲 Randomize All</button>
+ </div>
+ <div id="setupCats"></div>
+ <div id="setupSummary"><div class="sum-title">Colony Summary</div><div id="sumRows"></div><div id="sumSynergy"></div></div>
+ <button id="setupGoBtn" disabled onclick="launchGame()">BEGIN CAMPAIGN</button>
+</div>
+<div id="game">
+<div id="mapWrap"><canvas id="mapC"></canvas><div id="minimap"><canvas id="miniC"></canvas></div></div>
+<div id="top">
+ <div class="you" id="youLabel"><span class="yd" id="youDot"></span><span id="youName">YOU</span></div>
+ <span class="tnum" id="tNum">Turn 1</span>
+ <span class="season" id="sSeason">Spring</span>
+ <div class="queen-hud" id="queenHud">
+  <div><div class="qh-label">Queen HP</div><div style="display:flex;align-items:center;gap:4px"><div class="qh-bar"><div class="qh-fill" id="qhHpFill" style="background:var(--pur);width:100%"></div></div><span class="qh-val" id="qhHpVal" style="color:var(--pur)">100</span></div></div>
+  <div><div class="qh-label">Pheromone</div><div style="display:flex;align-items:center;gap:4px"><div class="qh-bar"><div class="qh-fill" id="qhPherFill" style="background:var(--blu);width:80%"></div></div><span class="qh-val" id="qhPherVal" style="color:var(--blu)">80</span></div></div>
+ </div>
+ <div class="stRow" id="stRow"></div>
+</div>
+<div id="left">
+ <div class="colony-grid" id="colonyWidgets">
+  <div class="pSec" data-widget="passive"><div id="passSec"></div></div>
+  <div class="pSec" data-widget="resources"><div class="pT">Resources</div><div id="resSec"></div></div>
+  <div class="pSec" data-widget="population"><div class="pT">Population</div><div class="popG" id="popSec"></div></div>
+  <div class="pSec" data-widget="units"><div class="pT">Units</div><div class="armG" id="armSec"></div></div>
+  <div class="pSec" data-widget="buildings"><div class="pT">Buildings <span id="bldCap" style="color:var(--t4);font-size:10px"></span></div><div class="bldG" id="bldSec"></div></div>
+  <div class="pSec" data-widget="hero"><div class="pT">Hero</div><div id="heroSec"></div></div>
+  <div class="pSec" data-widget="power"><div class="pT">Power</div><div id="winSec"></div></div>
+  <div class="pSec" data-widget="taxes"><div class="pT">Tax Manager</div><div id="taxSec"></div></div>
+  <div class="pSec" data-widget="states"><div class="pT">Territories</div><div id="statesSec"></div></div>
+  <button class="widget-edit-btn" onclick="toggleWidgetConfig()" title="Edit Widgets" style="align-self:center">+</button>
+ </div>
+ <div id="queenSec" style="display:none"></div>
+ <div id="politicsSec" style="display:none"></div>
+</div>
+<div id="bot">
+ <div class="hud-res" id="hudRes">
+  <div class="hr">🌸 <b id="hudNec">0</b></div>
+  <div class="hr">🍯 <b id="hudHon">0</b></div>
+  <div class="hr">💎 <b id="hudRJ">0</b></div>
+  <div class="hr">👥 <b id="hudPop">0</b></div>
+ </div>
+ <button class="actBtn" onclick="showArmyBuilder()">🐝 Recruit</button>
+ <button class="actBtn" id="abScout" onclick="setMode('scout')">🔍 Scout</button>
+ <div class="hud-sep"></div>
+ <button class="actBtn" onclick="toggleColonyDrawer()">📋 Colony</button>
+ <button class="actBtn" onclick="openCenterPage('economics')">💰 Economy</button>
+ <button class="actBtn" onclick="openCenterPage('politics')">🏛 Politics</button>
+ <button class="actBtn" onclick="openCenterPage('dip')">🤝 Diplo</button>
+ <button class="actBtn" onclick="openCenterPage('res')">🔬 Research</button>
+ <button class="actBtn" onclick="openCenterPage('bat')">⚔ Battles</button>
+ <button class="actBtn" onclick="openCenterPage('court')">👑 Court</button>
+ <button id="endBtn" onclick="endTurn()">END TURN ▸</button>
+</div>
+<div id="widgetConfig">
+ <div class="wc-title">Colony Widgets</div>
+ <div class="wc-item"><input type="checkbox" id="wg_passive" checked onchange="toggleWidget('passive')"><label for="wg_passive">Faction Passive</label></div>
+ <div class="wc-item"><input type="checkbox" id="wg_resources" checked onchange="toggleWidget('resources')"><label for="wg_resources">Resources</label></div>
+ <div class="wc-item"><input type="checkbox" id="wg_population" checked onchange="toggleWidget('population')"><label for="wg_population">Population</label></div>
+ <div class="wc-item"><input type="checkbox" id="wg_units" checked onchange="toggleWidget('units')"><label for="wg_units">Units</label></div>
+ <div class="wc-item"><input type="checkbox" id="wg_buildings" checked onchange="toggleWidget('buildings')"><label for="wg_buildings">Buildings</label></div>
+ <div class="wc-item"><input type="checkbox" id="wg_hero" checked onchange="toggleWidget('hero')"><label for="wg_hero">Hero</label></div>
+ <div class="wc-item"><input type="checkbox" id="wg_power" checked onchange="toggleWidget('power')"><label for="wg_power">Power</label></div>
+ <div class="wc-item"><input type="checkbox" id="wg_taxes" checked onchange="toggleWidget('taxes')"><label for="wg_taxes">Tax Manager</label></div>
+ <div class="wc-item"><input type="checkbox" id="wg_states" checked onchange="toggleWidget('states')"><label for="wg_states">Territories</label></div>
+</div>
+<div id="right" style="display:none">
+ <div class="right-expand">
+  <div class="close-right"><span class="cr-title" id="rightTitle">Diplomacy</span><button onclick="closeRightPanel()">✕</button></div>
+  <div id="tDip"></div><div id="tEv" style="display:none"></div><div id="tBat" style="display:none"></div><div id="tRes" style="display:none"></div><div id="tEconomics" style="display:none"></div>
+  <div id="tPolitics" style="display:none"></div>
+  <div id="tCourt" style="display:none"></div>
+ </div>
+</div>
+</div>
+<div id="centerPage" onclick="if(event.target===this)closeCenterPage()">
+ <div id="centerPageContent">
+  <div class="cp-header"><span class="cp-title" id="cpTitle">Page</span><button onclick="closeCenterPage()">✕</button></div>
+  <div class="cp-body" id="cpBody"></div>
+ </div>
+</div>
+<div id="tip"><div class="tt" id="tipT"></div><div class="to" id="tipO"></div><div class="tr" id="tipR"></div></div>
+<div id="modal"><div class="mBox" id="mContent"></div></div>
+<div id="vic"><h1 id="vT" class="syne"></h1><div class="vs" id="vS"></div><button onclick="location.reload()">PLAY AGAIN</button></div>
+<div id="evPopup"><div class="epi" id="epI"></div><div class="epn" id="epN"></div><div class="epd" id="epD"></div><button onclick="closeEvPopup()">CONTINUE</button></div>
+<div id="notifs"></div>
+<div id="battleScene">
+ <div class="bat-top">
+  <div><div class="bat-title">⚔ BATTLE</div><div class="bat-vs" id="batVsText">Attacker vs Defender</div></div>
+  <div class="bat-actions">
+   <button class="skip-btn" onclick="skipBattle()">⏩ SKIP</button>
+   <button onclick="toggleBatSpeed()">⚡ Speed</button>
+  </div>
+ </div>
+ <div class="bat-field">
+  <div class="bat-side" id="batAtkSide"></div>
+  <div class="bat-center">
+   <div class="bat-canvas-wrap">
+    <canvas id="battleCanvas"></canvas>
+    <div class="bat-terrain-tag" id="batTerrainTag">Plains</div>
+    <div id="batPhaseLabel"></div>
+   </div>
+   <div class="bat-log" id="batLog"></div>
+  </div>
+  <div class="bat-side" id="batDefSide"></div>
+ </div>
+ <div class="bat-info">
+  <div class="bat-morale" id="batAtkMorale"><div class="bm-label">ATK Morale</div><div class="bm-bar"><div class="bm-fill" id="batAtkMoraleFill" style="width:80%;background:var(--red)"></div></div><div class="bm-val" id="batAtkMoraleVal" style="color:var(--red)">80</div></div>
+  <div class="bi-stat" id="batRoundInfo">Round <b>0</b> / <b>6</b></div>
+  <div class="bat-morale" id="batDefMorale"><div class="bm-label">DEF Morale</div><div class="bm-bar"><div class="bm-fill" id="batDefMoraleFill" style="width:80%;background:var(--blu)"></div></div><div class="bm-val" id="batDefMoraleVal" style="color:var(--blu)">80</div></div>
+ </div>
+</div>
+<div id="battleResult">
+ <div class="br-card" id="brCard"></div>
+</div>
+
+<div id="turnOverlay"><div class="to-text" id="turnText"></div></div>
+<div id="aiThink">AI is thinking</div>
+<button id="settingsBtn" onclick="toggleSettings()">⚙</button>
+<div id="settingsPanel">
+ <div class="setGroup"><div class="sg-title">Theme</div>
+  <div class="setOpt active" onclick="setTheme('dark')">🌑 Dark Ops</div>
+  <div class="setOpt" onclick="setTheme('honey')">🍯 Honeycomb</div>
+  <div class="setOpt" onclick="setTheme('war')">⚔ War Room</div>
+  <div class="setOpt" onclick="setTheme('nature')">🌿 Hive Natural</div>
+ </div>
+ <div class="setGroup"><div class="sg-title">Options</div>
+  <div class="setOpt"><input type="checkbox" id="sndToggle" checked onchange="toggleSound()"> Sound</div>
+  <div class="setOpt"><input type="checkbox" id="tipToggle" checked onchange="toggleTips()"> Tooltips</div>
+  <div class="setOpt"><input type="checkbox" id="fogToggle" checked onchange="toggleFog()"> Fog of War</div>
+  <div class="setOpt"><input type="checkbox" id="batModeToggle" checked onchange="toggleBatMode()"> Battle Scenes</div>
+ </div>
+ <div class="setGroup"><div class="sg-title">Animation Speed</div>
+  <div class="setOpt active" onclick="setSpeed('normal')">Normal</div>
+  <div class="setOpt" onclick="setSpeed('fast')">Fast</div>
+  <div class="setOpt" onclick="setSpeed('instant')">Instant</div>
+ </div>
+ <div class="setGroup"><div class="sg-title">Game</div>
+  <div class="setOpt" onclick="leaveGame()" style="color:var(--red)">Leave Game</div>
+ </div>
+</div>
+<div class="ver">BEE WARS v6.0.1</div>
+
+<script src="game.js"></script>
+</html>
