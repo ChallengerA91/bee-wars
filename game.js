@@ -5515,6 +5515,7 @@ function batAnimLoop(){
 // ============================================================
 const UPD_TIERS={patch:'🔧 Patch',update:'📦 Update',major:'🚀 Major Release',massive:'💥 Massive Overhaul'};
 const UPDATES=[
+ {ver:'v6.0.2',tier:'update',name:'Professional Button Polish',desc:'Premium CSS button upgrades across title and setup screens',items:['BEGIN CAMPAIGN button upgraded with gold gradient, shine sweep animation, and press feedback','Setup BEGIN CAMPAIGN gets matching premium treatment with scale and glow','Faction rows gain slide highlight and inset gold glow on selection','Back and Randomize buttons get gradient backgrounds and gold shimmer hover','All interactive elements use cubic-bezier easing for smoother transitions','Disabled states refined with grayscale filter']},
  {ver:'v6.0.1',tier:'minor',name:'Glass & Gold UI Polish',desc:'Premium visual overhaul of the main game screen — enhanced glass morphism, animated gold accents, hover micro-interactions, gradient borders, ambient vignette, and smoother transitions across all panels.',items:[
   'Top bar: animated gold border glow, gradient background, pulsing faction dot, gradient turn counter text',
   'Bottom HUD: radial underglow on action buttons, sweep shine on END TURN hover, enhanced resource display',
