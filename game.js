@@ -38,7 +38,7 @@ class TitleScene extends Phaser.Scene {
   create(){
     // Hide Phaser canvas, show HTML title screen
     this.game.canvas.style.display='none';
-    document.getElementById('title').style.display='flex';
+    document.getElementById('title').style.display=window.innerWidth<=760?'block':'grid';
     initTitle();
     return;
   }
@@ -7769,6 +7769,8 @@ var FACTION_ABILITIES={
 
 function initTitle(){
  var fg=document.getElementById('fGrid');
+ if(!fg)return;
+ fg.innerHTML='';
  var fids=Object.keys(F);
  for(var fi=0;fi<fids.length;fi++){
   var id=fids[fi];var f=F[id];
@@ -7776,7 +7778,7 @@ function initTitle(){
   var dotX=50+fc.x*0.35;var dotY=50-fc.y*0.35;
   var row=document.createElement('div');
   row.className='fRow';
-  row.style.borderLeftColor=f.c;
+  row.style.setProperty('--card-accent',f.c);
   row.style.animationDelay=(fi*30)+'ms';
   row.style.opacity='0';row.style.animation='titleIn .4s ease '+(400+fi*30)+'ms forwards';
   // Glow on select
@@ -7794,11 +7796,35 @@ function initTitle(){
    +'</div>'
    +'<div class="fr-stats" style="min-width:100px">'+statBar('ECO',f.s.eco,'#F0A830')+statBar('MIL',f.s.mil,'#D04040')+statBar('DIP',f.s.dip,'#60A0D0')+statBar('SCT',f.s.sct,'#888')+'</div>'
    +'<div class="fr-dot" style="background:'+f.c+'"></div>';
+  var statBarModern=function(label,val,col){
+   var v=val*2;
+   return '<div class="fr-stat" style="--stat-color:'+col+'"><span class="fr-stat-label">'+label+'</span><span class="fr-stat-value">'+v+'</span><span class="fr-stat-track"><span style="width:'+(v*10)+'%;background:'+col+'"></span></span></div>';
+  };
+  var total=(f.s.eco+f.s.mil+f.s.dip+f.s.sct)*2;
+  row.innerHTML='<div class="fr-top"><div><div class="fr-name">'+f.name+'</div><div class="fr-sp">'+f.sp+'</div></div><div class="fr-score">'+total+'</div></div>'
+   +'<div class="fr-lore">'+(FACTION_LORE_QUOTES[id]||f.lore||'')+'</div>'
+   +'<div class="fr-tags"><span>'+(FACTION_ABILITIES[id]||f.passive.n)+'</span><span>'+fc.nat+'</span></div>'
+   +'<div class="fr-extra">'
+   +'<div class="fr-compass"><div class="fc-x"></div><div class="fc-y"></div><div class="fc-lbl top">Dem</div><div class="fc-lbl bot">Auth</div><div class="fc-lbl lft">Peace</div><div class="fc-lbl rgt">War</div><div class="fc-dot" style="left:'+dotX+'%;top:'+dotY+'%;background:'+f.c+';box-shadow:0 0 8px '+f.c+'" title="'+fc.nat+'"></div></div>'
+   +'<div class="fr-stats">'+statBarModern('ECO',f.s.eco,'#F0A830')+statBarModern('MIL',f.s.mil,'#D04040')+statBarModern('DIP',f.s.dip,'#60A0D0')+statBarModern('SCT',f.s.sct,'#94A3B8')+'</div>'
+   +'</div>';
   row.onclick=(function(fid,fdata){return function(){
    document.querySelectorAll('.fRow').forEach(function(r){r.classList.remove('sel');r.style.boxShadow='';});
    this.classList.add('sel');
-   this.style.boxShadow='inset -200px 0 100px rgba('+hexToRgb(fdata.c)+',0.04)';
    selF=fid;
+   var title=document.getElementById('title');
+   if(title){
+    title.style.setProperty('--faction-accent',fdata.c);
+    title.style.setProperty('--faction-accent-dark',fdata.c2||fdata.c);
+   }
+   var selectedCompass=FACTION_COMPASS[fid]||{nat:'Unknown'};
+   var setTitleText=function(elId,txt){var el=document.getElementById(elId);if(el)el.textContent=txt;};
+   setTitleText('selectedFactionName',fdata.name);
+   setTitleText('selectedFactionSpecies',fdata.sp);
+   setTitleText('selectedFactionLore',fdata.lore||FACTION_LORE_QUOTES[fid]||'');
+   setTitleText('selectedFactionPassive',fdata.passive?fdata.passive.n:'');
+   setTitleText('selectedFactionCombat',fdata.combat?fdata.combat.n:'');
+   setTitleText('selectedFactionNature',selectedCompass.nat);
    document.getElementById('goBtn').disabled=false;
    // Update left panel stat bars (1-10 scale, doubled from 1-5)
    document.getElementById('tsEco').style.width=(fdata.s.eco*20)+'%';
