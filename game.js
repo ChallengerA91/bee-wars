@@ -708,9 +708,17 @@ const THEMES={
  dark:{bg:'#0a0a0a',s1:'#0f0f0f',s2:'#151515',s3:'#1a1a1a',brd:'#2a2a2a',t1:'#f0f0f0',t2:'#aaa',t3:'#777',gold:'#F59E0B',red:'#EF4444',grn:'#22C55E',blu:'#3B82F6'},
  honey:{bg:'#1a0f00',s1:'#1f1400',s2:'#2a1a00',s3:'#332000',brd:'#4a3000',t1:'#ffe8c0',t2:'#cca060',t3:'#997040',gold:'#FFB020',red:'#FF6040',grn:'#80C040',blu:'#60A0E0'},
  war:{bg:'#0d0000',s1:'#140000',s2:'#1a0505',s3:'#220808',brd:'#3a1010',t1:'#ffdddd',t2:'#cc8888',t3:'#885555',gold:'#FF4444',red:'#FF2020',grn:'#44CC44',blu:'#4488FF'},
- nature:{bg:'#050f05',s1:'#081408',s2:'#0c1a0c',s3:'#10200e',brd:'#1a3018',t1:'#d0f0d0',t2:'#80b080',t3:'#508050',gold:'#C0A020',red:'#E06040',grn:'#40D060',blu:'#4090D0'}
+ nature:{bg:'#050f05',s1:'#081408',s2:'#0c1a0c',s3:'#10200e',brd:'#1a3018',t1:'#d0f0d0',t2:'#80b080',t3:'#508050',gold:'#C0A020',red:'#E06040',grn:'#40D060',blu:'#4090D0'},
+ neon:{bg:'#000010',s1:'#05051a',s2:'#0a0a25',s3:'#101035',brd:'#202050',t1:'#e0ffff',t2:'#80cccc',t3:'#50aaaa',gold:'#ff00ff',red:'#ff0000',grn:'#00ff00',blu:'#00ffff'}
 };
 let currentTheme='dark';
+function toggleTheme() {
+  const themes = Object.keys(THEMES);
+  const curIdx = themes.indexOf(currentTheme);
+  const nextIdx = (curIdx + 1) % themes.length;
+  setTheme(themes[nextIdx]);
+}
+
 function setTheme(id){
  currentTheme=id;let t=THEMES[id];if(!t)return;
  let r=document.documentElement.style;
@@ -2948,7 +2956,76 @@ function applySeasonEffects(c,season){
 }
 function getSeasonNecMod(season,fid){var w=season.id==='winter'?(fid==='german'?.5:.25):0;return season.id==='spring'?1.5:season.id==='autumn'?.8:season.id==='winter'?w:1;}
 
-function gameLoop(ts){animTime=ts;if(G&&gameRunning){try{render();}catch(e){console.error('Render error:',e);}}requestAnimationFrame(gameLoop);}
+function initWeather() {
+  const canvas = document.getElementById('weatherCanvas');
+  if (!canvas) return;
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+  weatherParticles = [];
+  for (let i = 0; i < 150; i++) {
+    weatherParticles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 1,
+      vy: Math.random() * 2 + 1,
+      size: Math.random() * 2 + 1,
+      opacity: Math.random() * 0.5 + 0.2
+    });
+  }
+}
+
+function drawWeather() {
+  if (!G || !G.season) return;
+  const season = G.season.id;
+  const canvas = document.getElementById('weatherCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  const colors = {
+    'spring': 'rgba(255, 200, 200, ', // Pinkish pollen
+    'summer': 'rgba(255, 255, 100, ', // Yellowish pollen
+    'autumn': 'rgba(200, 150, 100, ', // Brownish dust
+    'winter': 'rgba(255, 255, 255, '  // Snow
+  };
+
+  const baseColor = colors[season] || 'rgba(255, 255, 255, ';
+
+  weatherParticles.forEach(p => {
+    p.x += p.vx;
+    p.y += p.vy;
+    if (season === 'winter') {
+      p.x += Math.sin(animTime / 1000 + p.y / 50) * 0.5; // Fluttery snow
+    } else if (season === 'spring') {
+       p.y -= p.vy * 0.5; // pollen floats up slightly or falls slower
+       p.x += Math.sin(animTime/500 + p.y/20) * 1;
+    } else if (season === 'summer' || season === 'autumn') {
+       p.x += Math.sin(animTime / 1000 + p.y / 100) * 0.2;
+    }
+
+    if (p.y > canvas.height) p.y = -10;
+    if (p.x > canvas.width) p.x = -10;
+    if (p.x < -10) p.x = canvas.width;
+
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+    ctx.fillStyle = baseColor + p.opacity + ')';
+    ctx.fill();
+  });
+}
+
+function gameLoop(ts){
+  animTime=ts;
+  if(G&&gameRunning){
+    try{
+      render();
+      drawWeather();
+    }catch(e){
+      console.error('Render error:',e);
+    }
+  }
+  requestAnimationFrame(gameLoop);
+}
 requestAnimationFrame(gameLoop);
 
 // ============================================================
@@ -4689,14 +4766,19 @@ function updateBattleMorale(){
 }
 
 // ===== DAMAGE FLOATER =====
-function spawnDmgFloat(x,y,dmg,isCrit,color){
+function spawnDmgFloat(x,y,dmg,isCrit,color,isHeal=false){
  var wrap=document.querySelector('.bat-canvas-wrap');
  var f=document.createElement('div');
- f.className='dmg-float';
+ f.className='dmg-float floating-text';
  f.style.left=x+'px';f.style.top=y+'px';
  f.style.fontSize=isCrit?'20px':'14px';
- f.style.color=color||'#fff';
- f.textContent=(isCrit?'CRIT! ':'')+(dmg>0?'-'+dmg:'MISS');
+ if (isHeal) {
+   f.style.color = 'var(--grn)';
+   f.textContent = "+" + dmg;
+ } else {
+   f.style.color=color||(isCrit ? 'var(--gold)' : 'var(--red)');
+   f.textContent=(isCrit?'CRIT! ':'')+(dmg>0?'-'+dmg:'MISS');
+ }
  wrap.appendChild(f);
  setTimeout(function(){f.remove();},800);
 }
@@ -5110,7 +5192,7 @@ function startBattleRounds(){
 
 // Faction battle abilities
 var FACTION_BAT_FX={
- italian:  {n:'Honey Shield',trigger:'round_start',desc:'Defenders regenerate 5% HP',fn:function(b,isAtk){if(!isAtk){for(var i=0;i<b.defUnits.length;i++){if(b.defUnits[i].alive){b.defUnits[i].hp=Math.min(b.defUnits[i].maxHp,b.defUnits[i].hp+Math.floor(b.defUnits[i].maxHp*0.05));}}}return 'Honey Shield: defenders regen 5%!';}},
+ italian:  {n:'Honey Shield',trigger:'round_start',desc:'Defenders regenerate 5% HP',fn:function(b,isAtk){if(!isAtk){for(var i=0;i<b.defUnits.length;i++){if(b.defUnits[i].alive){var healAmt=Math.floor(b.defUnits[i].maxHp*0.05); b.defUnits[i].hp=Math.min(b.defUnits[i].maxHp,b.defUnits[i].hp+healAmt); spawnDmgFloat(b.defUnits[i].rx, b.defUnits[i].ry, healAmt, false, null, true);}}}return 'Honey Shield: defenders regen 5%!';}},
  carniolan:{n:'Alpine Insight',trigger:'round_start',desc:'30% chance to dodge next attack',fn:function(b,isAtk){return Math.random()<0.3?'Alpine Insight: next attack dodged!':null;}},
  russian:  {n:'No Retreat',trigger:'on_death',desc:'Dead units deal 30% revenge damage',fn:function(b,isAtk,deadUnit){return 'No Retreat: '+deadUnit.n+' deals revenge damage!';}},
  africanized:{n:'Fury Swarm',trigger:'round_start',desc:'+15% attack when losing units',fn:function(b,isAtk){var dead=b.atkUnits.filter(function(u){return!u.alive;}).length;if(isAtk&&dead>0){for(var i=0;i<b.atkUnits.length;i++){if(b.atkUnits[i].alive)b.atkUnits[i].atk=Math.floor(b.atkUnits[i].atk*1.05);}return 'Fury Swarm: rage building! +ATK';}return null;}},
@@ -5397,6 +5479,7 @@ function performAttack(u,target,b){
  target.lastDmgTime=b.battleTime;
  if(u.isAtk)b.totalAtkDmg+=dmg;else b.totalDefDmg+=dmg;
  target.anim.shake=8;target.anim.flash=0.6;
+ spawnDmgFloat(target.rx, target.ry, dmg, isCrit);
 
  // Projectile for ranged, spark for melee
  if(u.isRanged){
@@ -7857,6 +7940,7 @@ function startGame(){
  showSetup();
 }
 function startGameActual(){
+ initWeather();
  loadForestTile();loadTiles(()=>{});loadTierSprites();loadSprites(()=>{G=new Game(selF);beeStates={};
   // Generate unique terrain textures per territory
   try{assignTerritoryTextures();assignTerritoryDecorations();}catch(e){console.log('Terrain tex:',e);}
